@@ -3,240 +3,166 @@
 import { useState } from "react";
 
 export default function CriarAlerta() {
-  const [destino, setDestino] = useState("escolher");
-  const [quando, setQuando] = useState("flexivel");
+  const [origemTipo, setOrigemTipo] = useState("estado");
+  const [destinoTipo, setDestinoTipo] = useState("todos");
 
   return (
-    <>
-      <div className="pf-bg">
-        <span className="blob blob1" />
-        <span className="blob blob2" />
-        <span className="blob blob3" />
-        <span className="spark s1">✨</span>
-        <span className="spark s2">💸</span>
-        <span className="spark s3">🧳</span>
-        <span className="spark s4">🪄</span>
-      </div>
-
-      <div className="container">
-        <h1>🔥 Criar alerta</h1>
-        <p>
-          Você não pesquisa. Você cria o alerta e o <b>PromoFly</b> caça o preço
-          <b> espetacular</b> pra você.
+    <div style={page}>
+      <div style={container}>
+        
+        <h1 style={title}>Criar alerta de promoção ✈️</h1>
+        <p style={subtitle}>
+          Escolha de onde quer sair e para onde quer receber promoções.
         </p>
 
-        <div className="card">
-          <label>📍 De onde você sai?</label>
-          <input placeholder="Ex: São Paulo, GRU, Recife..." />
-        </div>
+        {/* ORIGEM */}
+        <div style={card}>
+          <h3>📍 De onde você sai?</h3>
 
-        <div className="card">
-          <label>🎯 Para onde?</label>
-          <div className="options">
+          <div style={toggleGroup}>
             <button
-              className={destino === "escolher" ? "active" : ""}
-              onClick={() => setDestino("escolher")}
+              style={origemTipo === "estado" ? activeBtn : btn}
+              onClick={() => setOrigemTipo("estado")}
             >
-              Escolher destino
+              🌿 Estado
             </button>
 
             <button
-              className={destino === "todos" ? "active" : ""}
-              onClick={() => setDestino("todos")}
+              style={origemTipo === "aeroporto" ? activeBtn : btn}
+              onClick={() => setOrigemTipo("aeroporto")}
             >
-              Todos os destinos
-            </button>
-
-            <button
-              className={destino === "surpresa" ? "active" : ""}
-              onClick={() => setDestino("surpresa")}
-            >
-              🎲 Me surpreenda
+              ✈️ Aeroporto
             </button>
           </div>
+
+          <input
+            placeholder="Ex: São Paulo, GRU..."
+            style={input}
+          />
         </div>
 
-        <div className="card">
-          <label>📅 Quando você quer viajar?</label>
-          <div className="options">
-            <button
-              className={quando === "flexivel" ? "active" : ""}
-              onClick={() => setQuando("flexivel")}
-            >
-              Flexível
-            </button>
+        {/* DESTINO */}
+        <div style={card}>
+          <h3>🌎 Para onde você quer ir?</h3>
 
-            <button
-              className={quando === "fds" ? "active" : ""}
-              onClick={() => setQuando("fds")}
-            >
-              Final de semana
-            </button>
+          <button
+            style={destinoTipo === "todos" ? activeSelect : select}
+            onClick={() => setDestinoTipo("todos")}
+          >
+            🏝️ Todos os destinos
+          </button>
 
-            <button
-              className={quando === "feriado" ? "active" : ""}
-              onClick={() => setQuando("feriado")}
-            >
-              Feriado
-            </button>
-          </div>
+          <button
+            style={destinoTipo === "escolher" ? activeSelect : select}
+            onClick={() => setDestinoTipo("escolher")}
+          >
+            🎯 Escolher destino
+          </button>
+
+          <button
+            style={destinoTipo === "surpresa" ? activeSelect : select}
+            onClick={() => setDestinoTipo("surpresa")}
+          >
+            🎲 Me surpreenda
+          </button>
         </div>
 
-        <div className="criterio">
-          🔥 Você será avisado apenas quando o preço estiver
-          <b> 35% ou mais abaixo da média.</b>
-        </div>
+        {/* BOTÃO */}
+        <button style={mainButton}>
+          Continuar 🚀
+        </button>
 
-        <button className="cta">🚀 Criar alerta</button>
       </div>
-
-      <style jsx global>{`
-        body {
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-          background: linear-gradient(135deg, #fdf2ff, #e0f2ff, #eafff4);
-        }
-
-        .pf-bg {
-          position: fixed;
-          inset: 0;
-          overflow: hidden;
-          z-index: 0;
-        }
-
-        .blob {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(60px);
-          opacity: 0.6;
-          animation: float 8s ease-in-out infinite;
-        }
-
-        .blob1 {
-          width: 300px;
-          height: 300px;
-          background: #ff6bd6;
-          top: 10%;
-          left: -80px;
-        }
-
-        .blob2 {
-          width: 400px;
-          height: 400px;
-          background: #4f7cff;
-          top: 20%;
-          right: -100px;
-        }
-
-        .blob3 {
-          width: 350px;
-          height: 350px;
-          background: #34d399;
-          bottom: -120px;
-          left: 30%;
-        }
-
-        .spark {
-          position: absolute;
-          font-size: 22px;
-          animation: pop 3s ease-in-out infinite;
-        }
-
-        .s1 { top: 15%; left: 20%; }
-        .s2 { top: 25%; right: 20%; }
-        .s3 { bottom: 20%; left: 15%; }
-        .s4 { bottom: 15%; right: 25%; }
-
-        @keyframes float {
-          0%,100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
-
-        @keyframes pop {
-          0%,100% { transform: scale(1); }
-          50% { transform: scale(1.2); }
-        }
-
-        .container {
-          position: relative;
-          z-index: 1;
-          max-width: 500px;
-          margin: 60px auto;
-          padding: 20px;
-        }
-
-        h1 {
-          font-size: 32px;
-          margin-bottom: 10px;
-        }
-
-        p {
-          color: #555;
-          margin-bottom: 30px;
-        }
-
-        .card {
-          background: rgba(255,255,255,0.8);
-          backdrop-filter: blur(10px);
-          padding: 20px;
-          border-radius: 16px;
-          margin-bottom: 20px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        }
-
-        input {
-          width: 100%;
-          padding: 12px;
-          border-radius: 10px;
-          border: 1px solid #ddd;
-          margin-top: 10px;
-        }
-
-        .options {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          margin-top: 10px;
-        }
-
-        .options button {
-          padding: 10px;
-          border-radius: 12px;
-          border: 1px solid #ddd;
-          background: white;
-          cursor: pointer;
-        }
-
-        .options button.active {
-          background: #4f7cff;
-          color: white;
-          border: none;
-        }
-
-        .criterio {
-          background: #fff3e6;
-          padding: 15px;
-          border-radius: 14px;
-          margin-bottom: 20px;
-          font-size: 14px;
-        }
-
-        .cta {
-          width: 100%;
-          padding: 14px;
-          border-radius: 14px;
-          border: none;
-          background: linear-gradient(90deg, #4f7cff, #ff6bd6);
-          color: white;
-          font-size: 16px;
-          cursor: pointer;
-          transition: transform 0.2s ease;
-        }
-
-        .cta:hover {
-          transform: scale(1.03);
-        }
-      `}</style>
-    </>
+    </div>
   );
 }
+
+const page = {
+  minHeight: "100vh",
+  background: "linear-gradient(to bottom, #b3e5fc, #ffffff)",
+  display: "flex",
+  justifyContent: "center",
+  padding: 20
+};
+
+const container = {
+  width: "100%",
+  maxWidth: 420,
+};
+
+const title = {
+  fontSize: 28,
+  fontWeight: "bold",
+  marginBottom: 5
+};
+
+const subtitle = {
+  color: "#555",
+  marginBottom: 20
+};
+
+const card = {
+  background: "white",
+  borderRadius: 20,
+  padding: 20,
+  marginBottom: 20,
+  boxShadow: "0 10px 25px rgba(0,0,0,0.08)"
+};
+
+const toggleGroup = {
+  display: "flex",
+  gap: 10,
+  marginBottom: 15
+};
+
+const btn = {
+  flex: 1,
+  padding: 10,
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#f5f5f5",
+  cursor: "pointer"
+};
+
+const activeBtn = {
+  ...btn,
+  background: "#4caf50",
+  color: "white",
+  border: "none"
+};
+
+const select = {
+  width: "100%",
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#f5f5f5",
+  marginBottom: 10,
+  cursor: "pointer"
+};
+
+const activeSelect = {
+  ...select,
+  background: "#ffcc00",
+  border: "none",
+  fontWeight: "bold"
+};
+
+const input = {
+  width: "100%",
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid #ddd"
+};
+
+const mainButton = {
+  width: "100%",
+  padding: 15,
+  borderRadius: 20,
+  border: "none",
+  background: "#ff9800",
+  color: "white",
+  fontWeight: "bold",
+  fontSize: 16,
+  cursor: "pointer"
+};
