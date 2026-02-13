@@ -1,514 +1,242 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-export default function AlertaPage() {
-  const [origem, setOrigem] = useState("");
-  const [destinoModo, setDestinoModo] = useState("escolher"); // escolher | todos | surpresa
-  const [destino, setDestino] = useState("");
-  const [quando, setQuando] = useState("flexivel"); // flexivel | fds | feriado
-
-  const [flexIdaIni, setFlexIdaIni] = useState("");
-  const [flexIdaFim, setFlexIdaFim] = useState("");
-  const [flexVoltaIni, setFlexVoltaIni] = useState("");
-  const [flexVoltaFim, setFlexVoltaFim] = useState("");
-  const [duracaoMin, setDuracaoMin] = useState("");
-  const [duracaoMax, setDuracaoMax] = useState("");
-
-  const feriados = useMemo(
-    () => [
-      "Carnaval",
-      "Semana Santa",
-      "Tiradentes",
-      "Dia do Trabalhador",
-      "Corpus Christi",
-      "Independência",
-      "Nossa Senhora Aparecida",
-      "Finados",
-      "Proclamação da República",
-      "Natal",
-      "Réveillon",
-    ],
-    []
-  );
-
-  const [feriadoEscolhido, setFeriadoEscolhido] = useState(feriados[0]);
-  const [emendar, setEmendar] = useState("0"); // 0 | 1 | 2
-  const [flexDia, setFlexDia] = useState(false);
-
-  const podeCriar =
-    origem.trim().length >= 2 &&
-    (destinoModo !== "escolher" || destino.trim().length >= 2);
-
-  function criarAlerta() {
-    if (!podeCriar) return;
-
-    const payload = {
-      origem,
-      destinoModo,
-      destino: destinoModo === "escolher" ? destino : destinoModo,
-      quando,
-      detalhes:
-        quando === "flexivel"
-          ? {
-              ida: { de: flexIdaIni, ate: flexIdaFim },
-              volta: { de: flexVoltaIni, ate: flexVoltaFim },
-              duracao: { min: duracaoMin, max: duracaoMax },
-            }
-          : quando === "fds"
-          ? { tipo: "final_de_semana" }
-          : { feriado: feriadoEscolhido, emendar, flexDia },
-      criterio: "🔥 só espetacular (>=35% abaixo da média)",
-    };
-
-    alert(
-      "✅ Alerta criado!\n\n" +
-        "Origem: " +
-        payload.origem +
-        "\nDestino: " +
-        (destinoModo === "escolher" ? payload.destino : destinoModo) +
-        "\nModo: " +
-        payload.quando +
-        "\n\n(Próximo passo: salvar de verdade + ligar Amadeus)"
-    );
-  }
+export default function CriarAlerta() {
+  const [destino, setDestino] = useState("escolher");
+  const [quando, setQuando] = useState("flexivel");
 
   return (
-    <main style={styles.page}>
-      <div style={styles.shell}>
-        <Header />
+    <>
+      <div className="pf-bg">
+        <span className="blob blob1" />
+        <span className="blob blob2" />
+        <span className="blob blob3" />
+        <span className="spark s1">✨</span>
+        <span className="spark s2">💸</span>
+        <span className="spark s3">🧳</span>
+        <span className="spark s4">🪄</span>
+      </div>
 
-        <Card title="📍 De onde você sai?" subtitle="Origem é obrigatória (aeroporto ou estado).">
-          <input
-            value={origem}
-            onChange={(e) => setOrigem(e.target.value)}
-            placeholder="Ex: São Paulo, GRU, Rio de Janeiro…"
-            style={styles.input}
-          />
-          <Tip>Exemplos: “SP”, “São Paulo”, “GRU”, “BH”, “Recife”</Tip>
-        </Card>
+      <div className="container">
+        <h1>🔥 Criar alerta</h1>
+        <p>
+          Você não pesquisa. Você cria o alerta e o <b>PromoFly</b> caça o preço
+          <b> espetacular</b> pra você.
+        </p>
 
-        <Card title="🎯 Para onde?" subtitle="Escolha um destino… ou deixe o PromoFly te surpreender.">
-          <Pills
-            value={destinoModo}
-            onChange={setDestinoModo}
-            items={[
-              { key: "escolher", label: "Escolher destino" },
-              { key: "todos", label: "Todos os destinos" },
-              { key: "surpresa", label: "🎲 Me surpreenda" },
-            ]}
-          />
+        <div className="card">
+          <label>📍 De onde você sai?</label>
+          <input placeholder="Ex: São Paulo, GRU, Recife..." />
+        </div>
 
-          {destinoModo === "escolher" ? (
-            <div style={{ marginTop: 12 }}>
-              <input
-                value={destino}
-                onChange={(e) => setDestino(e.target.value)}
-                placeholder="Ex: João Pessoa, JPA, Gramado, Salvador…"
-                style={styles.input}
-              />
-              <Tip>
-                Pode ser cidade/estado/aeroporto. (No futuro colocaremos lista com busca.)
-              </Tip>
-            </div>
-          ) : destinoModo === "surpresa" ? (
-            <FunBox>
-              🎲 <b>Me surpreenda</b> = o PromoFly procura a <b>melhor oportunidade</b> e te avisa só
-              quando for <b>🔥 espetacular</b>.
-            </FunBox>
-          ) : (
-            <FunBox>
-              🌎 <b>Todos os destinos</b> = você só escolhe a origem, e a gente caça as promoções
-              mais absurdas.
-            </FunBox>
-          )}
-        </Card>
+        <div className="card">
+          <label>🎯 Para onde?</label>
+          <div className="options">
+            <button
+              className={destino === "escolher" ? "active" : ""}
+              onClick={() => setDestino("escolher")}
+            >
+              Escolher destino
+            </button>
 
-        <Card title="🗓 Quando você quer viajar?" subtitle="Escolha o estilo da sua viagem.">
-          <Pills
-            value={quando}
-            onChange={setQuando}
-            items={[
-              { key: "flexivel", label: "🎲 Flexível" },
-              { key: "fds", label: "🌙 Final de semana" },
-              { key: "feriado", label: "🎉 Feriado" },
-            ]}
-          />
+            <button
+              className={destino === "todos" ? "active" : ""}
+              onClick={() => setDestino("todos")}
+            >
+              Todos os destinos
+            </button>
 
-          {quando === "flexivel" && (
-            <div style={{ marginTop: 14 }}>
-              <div style={styles.grid2}>
-                <Field label="📅 Ida (de)">
-                  <input
-                    type="date"
-                    value={flexIdaIni}
-                    onChange={(e) => setFlexIdaIni(e.target.value)}
-                    style={styles.input}
-                  />
-                </Field>
-                <Field label="📅 Ida (até)">
-                  <input
-                    type="date"
-                    value={flexIdaFim}
-                    onChange={(e) => setFlexIdaFim(e.target.value)}
-                    style={styles.input}
-                  />
-                </Field>
-                <Field label="↩️ Volta (de)">
-                  <input
-                    type="date"
-                    value={flexVoltaIni}
-                    onChange={(e) => setFlexVoltaIni(e.target.value)}
-                    style={styles.input}
-                  />
-                </Field>
-                <Field label="↩️ Volta (até)">
-                  <input
-                    type="date"
-                    value={flexVoltaFim}
-                    onChange={(e) => setFlexVoltaFim(e.target.value)}
-                    style={styles.input}
-                  />
-                </Field>
-              </div>
-
-              <div style={{ marginTop: 10 }}>
-                <div style={styles.grid2}>
-                  <Field label="⏳ Duração mín (dias)">
-                    <input
-                      inputMode="numeric"
-                      value={duracaoMin}
-                      onChange={(e) => setDuracaoMin(e.target.value)}
-                      placeholder="Ex: 3"
-                      style={styles.input}
-                    />
-                  </Field>
-                  <Field label="⏳ Duração máx (dias)">
-                    <input
-                      inputMode="numeric"
-                      value={duracaoMax}
-                      onChange={(e) => setDuracaoMax(e.target.value)}
-                      placeholder="Ex: 10"
-                      style={styles.input}
-                    />
-                  </Field>
-                </div>
-                <Tip>Deixe em branco se quiser “qualquer duração”.</Tip>
-              </div>
-            </div>
-          )}
-
-          {quando === "fds" && (
-            <FunBox>
-              🌙 <b>Final de semana</b> = a gente prioriza idas na sexta/sábado e volta no domingo/segunda,
-              buscando o preço mais absurdo.
-            </FunBox>
-          )}
-
-          {quando === "feriado" && (
-            <div style={{ marginTop: 14 }}>
-              <Field label="🎉 Qual feriado?">
-                <select
-                  value={feriadoEscolhido}
-                  onChange={(e) => setFeriadoEscolhido(e.target.value)}
-                  style={styles.select}
-                >
-                  {feriados.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <div style={{ marginTop: 10 }}>
-                <Field label="🧩 Emendar quantos dias?">
-                  <Pills
-                    value={emendar}
-                    onChange={setEmendar}
-                    items={[
-                      { key: "0", label: "0" },
-                      { key: "1", label: "+1" },
-                      { key: "2", label: "+2" },
-                    ]}
-                    compact
-                  />
-                </Field>
-              </div>
-
-              <label style={styles.switchRow}>
-                <input
-                  type="checkbox"
-                  checked={flexDia}
-                  onChange={(e) => setFlexDia(e.target.checked)}
-                />
-                <span>
-                  Aceito viajar <b>1 dia antes/depois</b>
-                </span>
-              </label>
-
-              <Tip>Isso aumenta muito as chances de achar uma promo 🔥 sem perder o feriado.</Tip>
-            </div>
-          )}
-        </Card>
-
-        <div style={styles.criteria}>
-          <div style={styles.criteriaBadge}>🔥 Critério</div>
-          <div style={styles.criteriaText}>
-            Você será avisado <b>apenas</b> quando o preço estiver <b>35% ou mais abaixo da média</b>.
-            <div style={{ marginTop: 6, opacity: 0.85 }}>
-              (Sem spam. Só pancada.)
-            </div>
+            <button
+              className={destino === "surpresa" ? "active" : ""}
+              onClick={() => setDestino("surpresa")}
+            >
+              🎲 Me surpreenda
+            </button>
           </div>
         </div>
 
-        <button
-          onClick={criarAlerta}
-          disabled={!podeCriar}
-          style={{
-            ...styles.cta,
-            opacity: podeCriar ? 1 : 0.55,
-            transform: podeCriar ? "translateY(0)" : "translateY(0)",
-          }}
-        >
-          Criar alerta 🚀
-        </button>
+        <div className="card">
+          <label>📅 Quando você quer viajar?</label>
+          <div className="options">
+            <button
+              className={quando === "flexivel" ? "active" : ""}
+              onClick={() => setQuando("flexivel")}
+            >
+              Flexível
+            </button>
 
-        <div style={styles.footerNote}>
-          Próximo passo: salvar alertas de verdade + ligar o Amadeus pra buscar preços reais.
+            <button
+              className={quando === "fds" ? "active" : ""}
+              onClick={() => setQuando("fds")}
+            >
+              Final de semana
+            </button>
+
+            <button
+              className={quando === "feriado" ? "active" : ""}
+              onClick={() => setQuando("feriado")}
+            >
+              Feriado
+            </button>
+          </div>
         </div>
-      </div>
-    </main>
-  );
-}
 
-function Header() {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={styles.brandRow}>
-        <div style={styles.logo}>✈️</div>
-        <div>
-          <div style={styles.brand}>PromoFly</div>
-          <div style={styles.tagline}>Promoção de voo do jeito divertido 😄</div>
+        <div className="criterio">
+          🔥 Você será avisado apenas quando o preço estiver
+          <b> 35% ou mais abaixo da média.</b>
         </div>
+
+        <button className="cta">🚀 Criar alerta</button>
       </div>
 
-      <h1 style={styles.h1}>Criar alerta 🔥</h1>
-      <p style={styles.p}>
-        Você não pesquisa. Você só cria o alerta e o PromoFly caça o preço <b>espetacular</b>.
-      </p>
-    </div>
+      <style jsx global>{`
+        body {
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          background: linear-gradient(135deg, #fdf2ff, #e0f2ff, #eafff4);
+        }
+
+        .pf-bg {
+          position: fixed;
+          inset: 0;
+          overflow: hidden;
+          z-index: 0;
+        }
+
+        .blob {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(60px);
+          opacity: 0.6;
+          animation: float 8s ease-in-out infinite;
+        }
+
+        .blob1 {
+          width: 300px;
+          height: 300px;
+          background: #ff6bd6;
+          top: 10%;
+          left: -80px;
+        }
+
+        .blob2 {
+          width: 400px;
+          height: 400px;
+          background: #4f7cff;
+          top: 20%;
+          right: -100px;
+        }
+
+        .blob3 {
+          width: 350px;
+          height: 350px;
+          background: #34d399;
+          bottom: -120px;
+          left: 30%;
+        }
+
+        .spark {
+          position: absolute;
+          font-size: 22px;
+          animation: pop 3s ease-in-out infinite;
+        }
+
+        .s1 { top: 15%; left: 20%; }
+        .s2 { top: 25%; right: 20%; }
+        .s3 { bottom: 20%; left: 15%; }
+        .s4 { bottom: 15%; right: 25%; }
+
+        @keyframes float {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pop {
+          0%,100% { transform: scale(1); }
+          50% { transform: scale(1.2); }
+        }
+
+        .container {
+          position: relative;
+          z-index: 1;
+          max-width: 500px;
+          margin: 60px auto;
+          padding: 20px;
+        }
+
+        h1 {
+          font-size: 32px;
+          margin-bottom: 10px;
+        }
+
+        p {
+          color: #555;
+          margin-bottom: 30px;
+        }
+
+        .card {
+          background: rgba(255,255,255,0.8);
+          backdrop-filter: blur(10px);
+          padding: 20px;
+          border-radius: 16px;
+          margin-bottom: 20px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        input {
+          width: 100%;
+          padding: 12px;
+          border-radius: 10px;
+          border: 1px solid #ddd;
+          margin-top: 10px;
+        }
+
+        .options {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 10px;
+        }
+
+        .options button {
+          padding: 10px;
+          border-radius: 12px;
+          border: 1px solid #ddd;
+          background: white;
+          cursor: pointer;
+        }
+
+        .options button.active {
+          background: #4f7cff;
+          color: white;
+          border: none;
+        }
+
+        .criterio {
+          background: #fff3e6;
+          padding: 15px;
+          border-radius: 14px;
+          margin-bottom: 20px;
+          font-size: 14px;
+        }
+
+        .cta {
+          width: 100%;
+          padding: 14px;
+          border-radius: 14px;
+          border: none;
+          background: linear-gradient(90deg, #4f7cff, #ff6bd6);
+          color: white;
+          font-size: 16px;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        }
+
+        .cta:hover {
+          transform: scale(1.03);
+        }
+      `}</style>
+    </>
   );
 }
-
-function Card({ title, subtitle, children }) {
-  return (
-    <section style={styles.card}>
-      <div style={styles.cardTop}>
-        <div style={styles.cardTitle}>{title}</div>
-        <div style={styles.cardSub}>{subtitle}</div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={styles.fieldLabel}>{label}</div>
-      {children}
-    </div>
-  );
-}
-
-function Tip({ children }) {
-  return <div style={styles.tip}>{children}</div>;
-}
-
-function FunBox({ children }) {
-  return <div style={styles.funBox}>{children}</div>;
-}
-
-function Pills({ value, onChange, items, compact }) {
-  return (
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-      {items.map((it) => {
-        const active = value === it.key;
-        return (
-          <button
-            key={it.key}
-            type="button"
-            onClick={() => onChange(it.key)}
-            style={{
-              ...styles.pill,
-              padding: compact ? "10px 12px" : "12px 14px",
-              borderColor: active ? "rgba(99,102,241,0.55)" : "rgba(0,0,0,0.10)",
-              background: active
-                ? "linear-gradient(135deg, rgba(99,102,241,0.22), rgba(6,182,212,0.15))"
-                : "rgba(255,255,255,0.75)",
-              boxShadow: active ? "0 12px 24px rgba(99,102,241,0.15)" : "0 10px 20px rgba(2,6,23,0.06)",
-              fontWeight: active ? 900 : 800,
-            }}
-          >
-            {it.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    padding: 18,
-    fontFamily: "system-ui",
-    background:
-      "radial-gradient(900px 520px at 10% 0%, rgba(99,102,241,0.26), transparent 60%)," +
-      "radial-gradient(900px 520px at 90% 10%, rgba(6,182,212,0.22), transparent 55%)," +
-      "linear-gradient(180deg, #f8fafc, #eef2ff)",
-  },
-  shell: {
-    maxWidth: 460,
-    margin: "0 auto",
-  },
-  brandRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
-  },
-  logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    display: "grid",
-    placeItems: "center",
-    background: "linear-gradient(135deg, rgba(99,102,241,0.35), rgba(6,182,212,0.28))",
-    border: "1px solid rgba(99,102,241,0.25)",
-    boxShadow: "0 16px 32px rgba(2,6,23,0.10)",
-    fontSize: 20,
-  },
-  brand: { fontWeight: 1000, letterSpacing: -0.3, fontSize: 18, color: "#0f172a" },
-  tagline: { fontSize: 12.5, color: "rgba(15,23,42,0.70)", fontWeight: 700 },
-  h1: { fontSize: 28, margin: "6px 0 6px", letterSpacing: -0.6, color: "#0f172a" },
-  p: { margin: 0, color: "rgba(15,23,42,0.75)", fontSize: 14.5, lineHeight: 1.4 },
-
-  card: {
-    background: "rgba(255,255,255,0.72)",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
-    border: "1px solid rgba(99,102,241,0.18)",
-    boxShadow: "0 18px 36px rgba(2,6,23,0.08)",
-    backdropFilter: "blur(10px)",
-  },
-  cardTop: { marginBottom: 12 },
-  cardTitle: { fontWeight: 1000, fontSize: 16, color: "#0f172a" },
-  cardSub: { fontSize: 12.5, color: "rgba(15,23,42,0.68)", marginTop: 4, fontWeight: 700 },
-
-  fieldLabel: { fontSize: 12.5, color: "rgba(15,23,42,0.78)", marginBottom: 6, fontWeight: 900 },
-
-  input: {
-    width: "100%",
-    padding: 12,
-    borderRadius: 14,
-    border: "1px solid rgba(0,0,0,0.12)",
-    background: "rgba(255,255,255,0.92)",
-    outline: "none",
-    fontSize: 15,
-    fontWeight: 700,
-    color: "#0f172a",
-  },
-  select: {
-    width: "100%",
-    padding: 12,
-    borderRadius: 14,
-    border: "1px solid rgba(0,0,0,0.12)",
-    background: "rgba(255,255,255,0.92)",
-    outline: "none",
-    fontSize: 15,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  pill: {
-    borderRadius: 999,
-    border: "2px solid rgba(0,0,0,0.10)",
-    cursor: "pointer",
-    fontSize: 14,
-  },
-  grid2: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-  },
-  tip: {
-    marginTop: 8,
-    fontSize: 12.5,
-    color: "rgba(15,23,42,0.62)",
-    fontWeight: 700,
-  },
-  funBox: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 16,
-    background: "linear-gradient(135deg, rgba(99,102,241,0.14), rgba(6,182,212,0.10))",
-    border: "1px solid rgba(99,102,241,0.22)",
-    color: "rgba(15,23,42,0.88)",
-    fontWeight: 750,
-    lineHeight: 1.35,
-  },
-  switchRow: {
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    marginTop: 12,
-    fontWeight: 800,
-    color: "rgba(15,23,42,0.82)",
-  },
-
-  criteria: {
-    display: "flex",
-    gap: 12,
-    alignItems: "stretch",
-    padding: 14,
-    borderRadius: 18,
-    background: "linear-gradient(135deg, rgba(255,199,0,0.16), rgba(255,120,0,0.10))",
-    border: "1px solid rgba(255,140,0,0.30)",
-    boxShadow: "0 14px 28px rgba(255,140,0,0.10)",
-    marginBottom: 14,
-  },
-  criteriaBadge: {
-    minWidth: 92,
-    display: "grid",
-    placeItems: "center",
-    borderRadius: 14,
-    background: "rgba(255,255,255,0.70)",
-    border: "1px solid rgba(255,140,0,0.25)",
-    fontWeight: 1000,
-    color: "#7c2d12",
-  },
-  criteriaText: { fontSize: 13.5, fontWeight: 800, color: "rgba(15,23,42,0.88)" },
-
-  cta: {
-    width: "100%",
-    padding: 16,
-    borderRadius: 18,
-    border: "none",
-    background: "linear-gradient(90deg, #6366f1, #06b6d4)",
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: 1000,
-    letterSpacing: 0.2,
-    boxShadow: "0 20px 34px rgba(99,102,241,0.22)",
-    cursor: "pointer",
-  },
-  footerNote: {
-    marginTop: 10,
-    textAlign: "center",
-    fontSize: 12.5,
-    color: "rgba(15,23,42,0.62)",
-    fontWeight: 700,
-  },
-};
