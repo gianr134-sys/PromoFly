@@ -1,21 +1,50 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export async function POST(req) {
-  const body = await req.json();
-  const { origem, destino, tipo_destino, tipo_data } = body;
+  try {
+    const body = await req.json();
 
-  const { data, error } = await supabase
-    .from("alertas")
-    .insert([{ origem, destino, tipo_destino, tipo_data }]);
+    const { origem, destino, origemTipo, destinoTipo } = body;
 
-  if (error) {
-    return Response.json({ error }, { status: 500 });
+    if (!origem) {
+      return new Response(
+        JSON.stringify({ error: "Origem é obrigatória." }),
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("alertas")
+      .insert([
+        {
+          origem,
+          destino: destino || null,
+          tipo_destino: destinoTipo || "todos",
+          tipo_data: "flexivel"
+        }
+      ])
+      .select();
+
+    if (error) {
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { status: 500 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, data }),
+      { status: 200 }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500 }
+    );
   }
-
-  return Response.json({ success: true, data });
 }
