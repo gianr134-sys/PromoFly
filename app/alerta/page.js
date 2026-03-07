@@ -5,30 +5,69 @@ import { useState } from "react";
 export default function CriarAlerta() {
   const [origemTipo, setOrigemTipo] = useState("estado");
   const [destinoTipo, setDestinoTipo] = useState("todos");
+  const [origem, setOrigem] = useState("");
+  const [destino, setDestino] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function criarAlerta() {
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/alertas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          origem,
+          destino,
+          tipo_origem: origemTipo,
+          tipo_destino: destinoTipo,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert("Erro ao criar alerta.");
+        console.error(data);
+        return;
+      }
+
+      alert("Alerta criado com sucesso!");
+      setOrigem("");
+      setDestino("");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao enviar alerta.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div style={page}>
       <div style={container}>
-        
         <h1 style={title}>Criar alerta de promoção ✈️</h1>
         <p style={subtitle}>
           Escolha de onde quer sair e para onde quer receber promoções.
         </p>
 
-        {/* ORIGEM */}
         <div style={card}>
           <h3>📍 De onde você sai?</h3>
 
           <div style={toggleGroup}>
             <button
-              style={origemTipo === "estado" ? activeBtn : btn}
+              type="button"
+              style={origemTipo === "estado" ? activeBtnGreen : btn}
               onClick={() => setOrigemTipo("estado")}
             >
               🌿 Estado
             </button>
 
             <button
-              style={origemTipo === "aeroporto" ? activeBtn : btn}
+              type="button"
+              style={origemTipo === "aeroporto" ? activeBtnBlue : btn}
               onClick={() => setOrigemTipo("aeroporto")}
             >
               ✈️ Aeroporto
@@ -36,42 +75,55 @@ export default function CriarAlerta() {
           </div>
 
           <input
-            placeholder="Ex: São Paulo, GRU..."
             style={input}
+            placeholder="Ex: São Paulo, GRU..."
+            value={origem}
+            onChange={(e) => setOrigem(e.target.value)}
           />
         </div>
 
-        {/* DESTINO */}
         <div style={card}>
           <h3>🌎 Para onde você quer ir?</h3>
 
-          <button
-            style={destinoTipo === "todos" ? activeSelect : select}
-            onClick={() => setDestinoTipo("todos")}
-          >
-            🏝️ Todos os destinos
-          </button>
+          <div style={verticalOptions}>
+            <button
+              type="button"
+              style={destinoTipo === "todos" ? activeBtnYellow : btn}
+              onClick={() => setDestinoTipo("todos")}
+            >
+              🏝️ Todos os destinos
+            </button>
 
-          <button
-            style={destinoTipo === "escolher" ? activeSelect : select}
-            onClick={() => setDestinoTipo("escolher")}
-          >
-            🎯 Escolher destino
-          </button>
+            <button
+              type="button"
+              style={destinoTipo === "escolher" ? activeBtnBlue : btn}
+              onClick={() => setDestinoTipo("escolher")}
+            >
+              🎯 Escolher destino
+            </button>
 
-          <button
-            style={destinoTipo === "surpresa" ? activeSelect : select}
-            onClick={() => setDestinoTipo("surpresa")}
-          >
-            🎲 Me surpreenda
-          </button>
+            <button
+              type="button"
+              style={destinoTipo === "surpreenda" ? activeBtnBlue : btn}
+              onClick={() => setDestinoTipo("surpreenda")}
+            >
+              🎲 Me surpreenda
+            </button>
+          </div>
+
+          {destinoTipo === "escolher" && (
+            <input
+              style={input}
+              placeholder="Ex: João Pessoa, Lisboa, Salvador..."
+              value={destino}
+              onChange={(e) => setDestino(e.target.value)}
+            />
+          )}
         </div>
 
-        {/* BOTÃO */}
-        <button style={mainButton}>
-          Continuar 🚀
+        <button type="button" style={continueBtn} onClick={criarAlerta} disabled={loading}>
+          {loading ? "Enviando..." : "Continuar 🚀"}
         </button>
-
       </div>
     </div>
   );
@@ -79,90 +131,101 @@ export default function CriarAlerta() {
 
 const page = {
   minHeight: "100vh",
-  background: "linear-gradient(to bottom, #b3e5fc, #ffffff)",
-  display: "flex",
-  justifyContent: "center",
-  padding: 20
+  background: "#dff0fb",
+  padding: "40px 20px",
+  fontFamily: "Arial, sans-serif",
 };
 
 const container = {
-  width: "100%",
-  maxWidth: 420,
+  maxWidth: "760px",
+  margin: "0 auto",
 };
 
 const title = {
-  fontSize: 28,
-  fontWeight: "bold",
-  marginBottom: 5
+  fontSize: "32px",
+  fontWeight: "800",
+  marginBottom: "12px",
 };
 
 const subtitle = {
+  fontSize: "18px",
   color: "#555",
-  marginBottom: 20
+  marginBottom: "28px",
 };
 
 const card = {
-  background: "white",
-  borderRadius: 20,
-  padding: 20,
-  marginBottom: 20,
-  boxShadow: "0 10px 25px rgba(0,0,0,0.08)"
+  background: "#fff",
+  borderRadius: "28px",
+  padding: "26px",
+  marginBottom: "26px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
 };
 
 const toggleGroup = {
   display: "flex",
-  gap: 10,
-  marginBottom: 15
+  gap: "14px",
+  margin: "18px 0",
+};
+
+const verticalOptions = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "14px",
+  marginTop: "18px",
+  marginBottom: "18px",
 };
 
 const btn = {
   flex: 1,
-  padding: 10,
-  borderRadius: 12,
-  border: "1px solid #ddd",
-  background: "#f5f5f5",
-  cursor: "pointer"
+  padding: "18px 20px",
+  borderRadius: "18px",
+  border: "2px solid #ddd",
+  background: "#f8f8f8",
+  fontSize: "16px",
+  cursor: "pointer",
 };
 
-const activeBtn = {
+const activeBtnGreen = {
   ...btn,
-  background: "#4caf50",
-  color: "white",
-  border: "none"
+  background: "#69b35a",
+  color: "#fff",
+  border: "2px solid #69b35a",
+  fontWeight: "700",
 };
 
-const select = {
-  width: "100%",
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid #ddd",
-  background: "#f5f5f5",
-  marginBottom: 10,
-  cursor: "pointer"
+const activeBtnBlue = {
+  ...btn,
+  background: "#eef5ff",
+  color: "#3478f6",
+  border: "2px solid #3478f6",
+  fontWeight: "700",
 };
 
-const activeSelect = {
-  ...select,
-  background: "#ffcc00",
-  border: "none",
-  fontWeight: "bold"
+const activeBtnYellow = {
+  ...btn,
+  background: "#f2cf46",
+  color: "#2d5ea8",
+  border: "2px solid #f2cf46",
+  fontWeight: "700",
 };
 
 const input = {
   width: "100%",
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid #ddd"
+  padding: "20px",
+  borderRadius: "18px",
+  border: "2px solid #ddd",
+  fontSize: "18px",
+  boxSizing: "border-box",
 };
 
-const mainButton = {
+const continueBtn = {
   width: "100%",
-  padding: 15,
-  borderRadius: 20,
+  padding: "24px",
+  borderRadius: "999px",
   border: "none",
-  background: "#ff9800",
-  color: "white",
-  fontWeight: "bold",
-  fontSize: 16,
-  cursor: "pointer"
+  background: "#f29d32",
+  color: "#fff",
+  fontSize: "22px",
+  fontWeight: "800",
+  cursor: "pointer",
 };
