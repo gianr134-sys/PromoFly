@@ -9,7 +9,10 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
-    const { origem, destino, origemTipo, destinoTipo } = body;
+    const origem = body.origem || null;
+    const destino = body.destino || null;
+    const origemTipo = body.origemTipo || "estado";
+    const destinoTipo = body.destinoTipo || "todos";
 
     if (!origem) {
       return new Response(
@@ -23,10 +26,10 @@ export async function POST(req) {
       .insert([
         {
           origem,
-          destino: destino || null,
-          tipo_destino: destinoTipo || "todos",
-          tipo_data: "flexivel"
-        }
+          destino,
+          tipo_origem: origemTipo,
+          tipo_destino: destinoTipo,
+        },
       ])
       .select();
 
@@ -38,12 +41,17 @@ export async function POST(req) {
     }
 
     return new Response(
-      JSON.stringify({ success: true, data }),
+      JSON.stringify({
+        success: true,
+        data,
+      }),
       { status: 200 }
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({
+        error: err.message,
+      }),
       { status: 500 }
     );
   }
