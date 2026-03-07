@@ -1,13 +1,34 @@
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+export async function GET() {
+  return NextResponse.json(
+    { message: "Rota de alertas ativa. Use POST para criar alerta." },
+    { status: 200 }
+  );
+}
 
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const body = await req.json();
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        {
+          error: "Variáveis do Supabase não configuradas corretamente.",
+          debug: {
+            hasSupabaseUrl: !!supabaseUrl,
+            hasSupabaseKey: !!supabaseKey,
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const body = await request.json();
 
     const origem = body.origem || null;
     const destino = body.destino || null;
@@ -15,8 +36,8 @@ export async function POST(req) {
     const destinoTipo = body.destinoTipo || "todos";
 
     if (!origem) {
-      return new Response(
-        JSON.stringify({ error: "Origem é obrigatória." }),
+      return NextResponse.json(
+        { error: "Origem é obrigatória." },
         { status: 400 }
       );
     }
@@ -34,24 +55,27 @@ export async function POST(req) {
       .select();
 
     if (error) {
-      return new Response(
-        JSON.stringify({ error: error.message }),
+      return NextResponse.json(
+        {
+          error: error.message,
+          details: error,
+        },
         { status: 500 }
       );
     }
 
-    return new Response(
-      JSON.stringify({
+    return NextResponse.json(
+      {
         success: true,
         data,
-      }),
+      },
       { status: 200 }
     );
   } catch (err) {
-    return new Response(
-      JSON.stringify({
-        error: err.message,
-      }),
+    return NextResponse.json(
+      {
+        error: err.message || "Erro interno ao criar alerta.",
+      },
       { status: 500 }
     );
   }
