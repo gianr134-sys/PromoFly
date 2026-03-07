@@ -7,71 +7,62 @@ export default function CriarAlerta() {
   const [destinoTipo, setDestinoTipo] = useState("todos");
   const [origem, setOrigem] = useState("");
   const [destino, setDestino] = useState("");
-  const [loading, setLoading] = useState(false);
 
   async function criarAlerta() {
-    try {
-      setLoading(true);
+    const res = await fetch("/api/alertas", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        origem,
+        destino,
+        origemTipo,
+        destinoTipo
+      })
+    });
 
-      const res = await fetch("/api/alertas", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          origem,
-          destino,
-          tipo_origem: origemTipo,
-          tipo_destino: destinoTipo,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert("Erro ao criar alerta.");
-        console.error(data);
-        return;
-      }
-
-      alert("Alerta criado com sucesso!");
+    if (res.ok) {
+      alert("Alerta criado com sucesso ✈️");
       setOrigem("");
       setDestino("");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao enviar alerta.");
-    } finally {
-      setLoading(false);
+    } else {
+      alert("Erro ao criar alerta");
     }
   }
 
   return (
     <div style={page}>
       <div style={container}>
+
         <h1 style={title}>Criar alerta de promoção ✈️</h1>
+
         <p style={subtitle}>
           Escolha de onde quer sair e para onde quer receber promoções.
         </p>
 
+        {/* ORIGEM */}
+
         <div style={card}>
+
           <h3>📍 De onde você sai?</h3>
 
           <div style={toggleGroup}>
+
             <button
-              type="button"
-              style={origemTipo === "estado" ? activeBtnGreen : btn}
+              style={origemTipo === "estado" ? activeBtn : btn}
               onClick={() => setOrigemTipo("estado")}
             >
               🌿 Estado
             </button>
 
             <button
-              type="button"
-              style={origemTipo === "aeroporto" ? activeBtnBlue : btn}
+              style={origemTipo === "aeroporto" ? activeBtn : btn}
               onClick={() => setOrigemTipo("aeroporto")}
             >
               ✈️ Aeroporto
             </button>
+
           </div>
 
           <input
@@ -79,15 +70,42 @@ export default function CriarAlerta() {
             placeholder="Ex: São Paulo, GRU..."
             value={origem}
             onChange={(e) => setOrigem(e.target.value)}
+            list="origens"
           />
+
+          <datalist id="origens">
+            <option value="São Paulo" />
+            <option value="Rio de Janeiro" />
+            <option value="Minas Gerais" />
+            <option value="Bahia" />
+            <option value="Paraná" />
+            <option value="Santa Catarina" />
+            <option value="Rio Grande do Sul" />
+            <option value="Brasília" />
+            <option value="GRU" />
+            <option value="CGH" />
+            <option value="VCP" />
+            <option value="SDU" />
+            <option value="GIG" />
+            <option value="BSB" />
+            <option value="CNF" />
+            <option value="SSA" />
+            <option value="REC" />
+            <option value="FOR" />
+          </datalist>
+
         </div>
 
+
+        {/* DESTINO */}
+
         <div style={card}>
+
           <h3>🌎 Para onde você quer ir?</h3>
 
-          <div style={verticalOptions}>
+          <div style={destinoGroup}>
+
             <button
-              type="button"
               style={destinoTipo === "todos" ? activeBtnYellow : btn}
               onClick={() => setDestinoTipo("todos")}
             >
@@ -95,137 +113,139 @@ export default function CriarAlerta() {
             </button>
 
             <button
-              type="button"
-              style={destinoTipo === "escolher" ? activeBtnBlue : btn}
+              style={destinoTipo === "escolher" ? activeBtn : btn}
               onClick={() => setDestinoTipo("escolher")}
             >
               🎯 Escolher destino
             </button>
 
             <button
-              type="button"
-              style={destinoTipo === "surpreenda" ? activeBtnBlue : btn}
-              onClick={() => setDestinoTipo("surpreenda")}
+              style={destinoTipo === "surpresa" ? activeBtn : btn}
+              onClick={() => setDestinoTipo("surpresa")}
             >
               🎲 Me surpreenda
             </button>
+
           </div>
 
           {destinoTipo === "escolher" && (
+
             <input
               style={input}
-              placeholder="Ex: João Pessoa, Lisboa, Salvador..."
+              placeholder="Ex: João Pessoa, Lisboa..."
               value={destino}
               onChange={(e) => setDestino(e.target.value)}
+              list="destinos"
             />
+
           )}
+
+          <datalist id="destinos">
+            <option value="João Pessoa" />
+            <option value="Salvador" />
+            <option value="Recife" />
+            <option value="Fortaleza" />
+            <option value="Lisboa" />
+            <option value="Maceió" />
+            <option value="Natal" />
+            <option value="Gramado" />
+            <option value="Buenos Aires" />
+            <option value="Santiago" />
+          </datalist>
+
         </div>
 
-        <button type="button" style={continueBtn} onClick={criarAlerta} disabled={loading}>
-          {loading ? "Enviando..." : "Continuar 🚀"}
+
+        <button style={continueBtn} onClick={criarAlerta}>
+          Continuar 🚀
         </button>
+
       </div>
     </div>
   );
 }
 
+
+/* ESTILOS */
+
 const page = {
   minHeight: "100vh",
   background: "#dff0fb",
-  padding: "40px 20px",
-  fontFamily: "Arial, sans-serif",
+  padding: "40px 20px"
 };
 
 const container = {
-  maxWidth: "760px",
-  margin: "0 auto",
+  maxWidth: "700px",
+  margin: "0 auto"
 };
 
 const title = {
   fontSize: "32px",
   fontWeight: "800",
-  marginBottom: "12px",
+  marginBottom: "10px"
 };
 
 const subtitle = {
-  fontSize: "18px",
-  color: "#555",
-  marginBottom: "28px",
+  marginBottom: "30px",
+  fontSize: "18px"
 };
 
 const card = {
   background: "#fff",
-  borderRadius: "28px",
-  padding: "26px",
-  marginBottom: "26px",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  padding: "25px",
+  borderRadius: "20px",
+  marginBottom: "25px"
 };
 
 const toggleGroup = {
   display: "flex",
-  gap: "14px",
-  margin: "18px 0",
+  gap: "10px",
+  margin: "20px 0"
 };
 
-const verticalOptions = {
+const destinoGroup = {
   display: "flex",
   flexDirection: "column",
-  gap: "14px",
-  marginTop: "18px",
-  marginBottom: "18px",
+  gap: "10px",
+  margin: "20px 0"
 };
 
 const btn = {
-  flex: 1,
-  padding: "18px 20px",
-  borderRadius: "18px",
-  border: "2px solid #ddd",
-  background: "#f8f8f8",
-  fontSize: "16px",
-  cursor: "pointer",
+  padding: "15px",
+  borderRadius: "15px",
+  border: "1px solid #ccc",
+  background: "#f5f5f5",
+  cursor: "pointer"
 };
 
-const activeBtnGreen = {
+const activeBtn = {
   ...btn,
   background: "#69b35a",
-  color: "#fff",
-  border: "2px solid #69b35a",
-  fontWeight: "700",
-};
-
-const activeBtnBlue = {
-  ...btn,
-  background: "#eef5ff",
-  color: "#3478f6",
-  border: "2px solid #3478f6",
-  fontWeight: "700",
+  color: "#fff"
 };
 
 const activeBtnYellow = {
   ...btn,
-  background: "#f2cf46",
-  color: "#2d5ea8",
-  border: "2px solid #f2cf46",
-  fontWeight: "700",
+  background: "#f3cf4c",
+  color: "#2d5ea8"
 };
 
 const input = {
   width: "100%",
-  padding: "20px",
-  borderRadius: "18px",
-  border: "2px solid #ddd",
-  fontSize: "18px",
-  boxSizing: "border-box",
+  padding: "18px",
+  borderRadius: "15px",
+  border: "1px solid #ccc",
+  fontSize: "16px"
 };
 
 const continueBtn = {
   width: "100%",
-  padding: "24px",
-  borderRadius: "999px",
-  border: "none",
+  padding: "22px",
+  borderRadius: "40px",
   background: "#f29d32",
+  border: "none",
+  fontSize: "20px",
   color: "#fff",
-  fontSize: "22px",
-  fontWeight: "800",
-  cursor: "pointer",
+  fontWeight: "700",
+  cursor: "pointer"
 };
