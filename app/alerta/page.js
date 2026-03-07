@@ -13,7 +13,12 @@ export default function CriarAlerta() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/alertas", {
+      const apiUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/api/alertas`
+          : "/api/alertas";
+
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -26,7 +31,15 @@ export default function CriarAlerta() {
         }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type") || "";
+
+      let data;
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        data = { error: text };
+      }
 
       if (!res.ok) {
         alert("Erro ao criar alerta: " + (data.error || "Erro desconhecido"));
@@ -39,7 +52,7 @@ export default function CriarAlerta() {
       setOrigemTipo("estado");
       setDestinoTipo("todos");
     } catch (error) {
-      alert("Erro ao criar alerta: " + error.message);
+      alert("Erro ao criar alerta: " + (error.message || "Falha no fetch"));
     } finally {
       setLoading(false);
     }
