@@ -12,19 +12,41 @@ export default function OportunidadesPage() {
   }, []);
 
   async function carregar() {
-    const { data, error } = await supabase
-      .from("oportunidades")
-      .select("*")
-      .order("criado_em", { ascending: false });
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (error) {
-      alert(error.message);
+      if (userError) {
+        alert(userError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("oportunidades")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("criado_em", { ascending: false });
+
+      if (error) {
+        alert(error.message);
+        setLoading(false);
+        return;
+      }
+
+      setDados(data || []);
       setLoading(false);
-      return;
+    } catch (err) {
+      alert(err?.message || "Erro ao carregar promoções.");
+      setLoading(false);
     }
-
-    setDados(data || []);
-    setLoading(false);
   }
 
   if (loading) {
