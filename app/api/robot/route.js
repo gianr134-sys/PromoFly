@@ -19,6 +19,8 @@ export async function GET() {
     const resultados = [];
 
     for (const alerta of alertas || []) {
+      if (!alerta.user_id) continue;
+
       const precoFake = gerarPrecoFake();
       const mediaFake = 700;
 
@@ -43,8 +45,8 @@ export async function GET() {
           ])
           .select();
 
-        if (!error) {
-          resultados.push(data?.[0]);
+        if (!error && data?.[0]) {
+          resultados.push(data[0]);
         }
       }
     }
