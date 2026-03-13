@@ -6,73 +6,55 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY;
 const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET;
 
+const AEROPORTOS_POR_CIDADE = {
+  "SÃO PAULO": ["GRU", "CGH", "VCP"],
+  "SAO PAULO": ["GRU", "CGH", "VCP"],
+  RIO: ["GIG", "SDU"],
+  "RIO DE JANEIRO": ["GIG", "SDU"],
+  SALVADOR: ["SSA"],
+  RECIFE: ["REC"],
+  FORTALEZA: ["FOR"],
+  MIAMI: ["MIA"],
+  LISBOA: ["LIS"],
+  MADRI: ["MAD"],
+  PARIS: ["CDG", "ORY"],
+  ROMA: ["FCO"],
+  "BUENOS AIRES": ["EZE", "AEP"],
+  SANTIAGO: ["SCL"],
+};
+
+const NOME_CIDADE_POR_AEROPORTO = {
+  GRU: "São Paulo",
+  CGH: "São Paulo",
+  VCP: "Campinas",
+  GIG: "Rio de Janeiro",
+  SDU: "Rio de Janeiro",
+  SSA: "Salvador",
+  REC: "Recife",
+  FOR: "Fortaleza",
+  MIA: "Miami",
+  LIS: "Lisboa",
+  MAD: "Madri",
+  CDG: "Paris",
+  ORY: "Paris",
+  FCO: "Roma",
+  EZE: "Buenos Aires",
+  AEP: "Buenos Aires",
+  SCL: "Santiago",
+};
+
 const ROTAS_PADRAO = [
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Salvador",
-    destinoCodigo: "SSA",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Rio de Janeiro",
-    destinoCodigo: "GIG",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Recife",
-    destinoCodigo: "REC",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Fortaleza",
-    destinoCodigo: "FOR",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Miami",
-    destinoCodigo: "MIA",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Lisboa",
-    destinoCodigo: "LIS",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Madri",
-    destinoCodigo: "MAD",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Paris",
-    destinoCodigo: "CDG",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Roma",
-    destinoCodigo: "FCO",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Buenos Aires",
-    destinoCodigo: "EZE",
-  },
-  {
-    origemNome: "São Paulo",
-    origemCodigo: "GRU",
-    destinoNome: "Santiago",
-    destinoCodigo: "SCL",
-  },
+  { origemTexto: "São Paulo", destinoTexto: "Salvador" },
+  { origemTexto: "São Paulo", destinoTexto: "Rio de Janeiro" },
+  { origemTexto: "São Paulo", destinoTexto: "Recife" },
+  { origemTexto: "São Paulo", destinoTexto: "Fortaleza" },
+  { origemTexto: "São Paulo", destinoTexto: "Miami" },
+  { origemTexto: "São Paulo", destinoTexto: "Lisboa" },
+  { origemTexto: "São Paulo", destinoTexto: "Madri" },
+  { origemTexto: "São Paulo", destinoTexto: "Paris" },
+  { origemTexto: "São Paulo", destinoTexto: "Roma" },
+  { origemTexto: "São Paulo", destinoTexto: "Buenos Aires" },
+  { origemTexto: "São Paulo", destinoTexto: "Santiago" },
 ];
 
 export async function GET() {
@@ -98,7 +80,10 @@ export async function GET() {
       .select("*");
 
     if (alertasError) {
-      return NextResponse.json({ error: alertasError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: alertasError.message },
+        { status: 500 }
+      );
     }
 
     const token = await getAmadeusToken();
@@ -137,14 +122,24 @@ export async function GET() {
 
         const companhiaNome = traduzirCompanhia(oferta.companhia);
 
+        const origemExibicao =
+          rota.origemAeroportoUsado && rota.origemAeroportoUsado !== rota.origemNome
+            ? `${rota.origemNome} (${rota.origemAeroportoUsado})`
+            : rota.origemNome;
+
+        const destinoExibicao =
+          rota.destinoAeroportoUsado && rota.destinoAeroportoUsado !== rota.destinoNome
+            ? `${rota.destinoNome} (${rota.destinoAeroportoUsado})`
+            : rota.destinoNome;
+
         const { data, error } = await supabase
           .from("oportunidades")
           .insert([
             {
               alerta_id: alerta.id,
               user_id: alerta.user_id,
-              origem: rota.origemNome,
-              destino: rota.destinoNome,
+              origem: origemExibicao,
+              destino: destinoExibicao,
               preco,
               companhia: companhiaNome,
               score,
@@ -244,123 +239,147 @@ async function buscarMelhorOferta({
 }
 
 function montarRotasDoAlerta(alerta) {
-  const origemCodigo = normalizarCodigo(alerta.origem, alerta.tipo_origem);
-  const origemNome = nomeDoLocal(origemCodigo, alerta.origem);
+  const origemTexto = String(alerta.origem || "").trim();
+  const tipoOrigem = String(alerta.tipo_origem || "").toLowerCase();
 
-  if (!origemCodigo) return [];
+  const destinoTextoOriginal = String(alerta.destino || "").trim();
+  const destinoTexto = destinoTextoOriginal.toLowerCase();
+  const tipoDestino = String(alerta.tipo_destino || "").toLowerCase();
 
-  const destinoTexto = String(alerta.destino || "").trim().toLowerCase();
+  const origens = expandirLocal(origemTexto, tipoOrigem);
+  if (!origens.length) return [];
 
   if (
     destinoTexto === "" ||
     destinoTexto === "todos" ||
     destinoTexto === "todos os destinos"
   ) {
-    return ROTAS_PADRAO.filter((rota) => rota.origemCodigo === origemCodigo);
+    return montarRotasPadraoParaOrigens(origens);
   }
 
-  const destinoCodigo = normalizarCodigo(alerta.destino, alerta.tipo_destino);
-  const destinoNome = nomeDoLocal(destinoCodigo, alerta.destino);
+  const destinos = expandirLocal(destinoTextoOriginal, tipoDestino);
+  if (!destinos.length) return [];
 
-  if (!destinoCodigo) return [];
+  const rotas = [];
 
-  return [
-    {
-      origemNome,
-      origemCodigo,
-      destinoNome,
-      destinoCodigo,
-    },
-  ];
+  for (const origem of origens) {
+    for (const destino of destinos) {
+      rotas.push({
+        origemNome: origem.cidadeNome,
+        origemCodigo: origem.codigo,
+        origemAeroportoUsado: origem.codigo,
+        destinoNome: destino.cidadeNome,
+        destinoCodigo: destino.codigo,
+        destinoAeroportoUsado: destino.codigo,
+      });
+    }
+  }
+
+  return rotas;
 }
 
-function normalizarCodigo(valor, tipo) {
-  if (!valor) return null;
+function montarRotasPadraoParaOrigens(origens) {
+  const rotas = [];
+
+  for (const origem of origens) {
+    for (const rotaPadrao of ROTAS_PADRAO) {
+      const origemPadraoExpandida = expandirLocal(rotaPadrao.origemTexto, "estado");
+      const origemPadraoCodigos = origemPadraoExpandida.map((item) => item.codigo);
+
+      if (!origemPadraoCodigos.includes(origem.codigo)) continue;
+
+      const destinos = expandirLocal(rotaPadrao.destinoTexto, "estado");
+
+      for (const destino of destinos) {
+        if (origem.codigo === destino.codigo) continue;
+
+        rotas.push({
+          origemNome: origem.cidadeNome,
+          origemCodigo: origem.codigo,
+          origemAeroportoUsado: origem.codigo,
+          destinoNome: destino.cidadeNome,
+          destinoCodigo: destino.codigo,
+          destinoAeroportoUsado: destino.codigo,
+        });
+      }
+    }
+  }
+
+  return rotas;
+}
+
+function expandirLocal(valor, tipo) {
+  if (!valor) return [];
 
   const texto = String(valor).trim().toUpperCase();
 
+  if (tipo === "aeroporto") {
+    return [
+      {
+        codigo: texto,
+        cidadeNome: nomeDoLocal(texto, valor),
+      },
+    ];
+  }
+
+  const aeroportos = AEROPORTOS_POR_CIDADE[texto];
+  if (!aeroportos) {
+    return [];
+  }
+
+  const cidadeNome = nomeCidadePorTexto(valor);
+
+  return aeroportos.map((codigo) => ({
+    codigo,
+    cidadeNome,
+  }));
+}
+
+function nomeCidadePorTexto(valor) {
+  const texto = String(valor || "").trim().toUpperCase();
+
   const mapa = {
-    "SÃO PAULO": "GRU",
-    "SAO PAULO": "GRU",
-    GRU: "GRU",
-    CGH: "CGH",
-    VCP: "VCP",
-
-    "RIO DE JANEIRO": "GIG",
-    RIO: "GIG",
-    GIG: "GIG",
-    SDU: "SDU",
-
-    SALVADOR: "SSA",
-    SSA: "SSA",
-
-    RECIFE: "REC",
-    REC: "REC",
-
-    FORTALEZA: "FOR",
-    FOR: "FOR",
-
-    MIAMI: "MIA",
-    MIA: "MIA",
-
-    LISBOA: "LIS",
-    LIS: "LIS",
-
-    MADRI: "MAD",
-    MADRID: "MAD",
-    MAD: "MAD",
-
-    PARIS: "CDG",
-    CDG: "CDG",
-
-    ROMA: "FCO",
-    ROME: "FCO",
-    FCO: "FCO",
-
-    "BUENOS AIRES": "EZE",
-    BUE: "EZE",
-    EZE: "EZE",
-
-    SANTIAGO: "SCL",
-    SCL: "SCL",
+    "SÃO PAULO": "São Paulo",
+    "SAO PAULO": "São Paulo",
+    RIO: "Rio de Janeiro",
+    "RIO DE JANEIRO": "Rio de Janeiro",
+    SALVADOR: "Salvador",
+    RECIFE: "Recife",
+    FORTALEZA: "Fortaleza",
+    MIAMI: "Miami",
+    LISBOA: "Lisboa",
+    MADRI: "Madri",
+    PARIS: "Paris",
+    ROMA: "Roma",
+    "BUENOS AIRES": "Buenos Aires",
+    SANTIAGO: "Santiago",
   };
 
-  if (tipo === "aeroporto") return texto;
-  return mapa[texto] || null;
+  return mapa[texto] || valor;
 }
 
 function nomeDoLocal(codigo, fallback) {
-  const mapa = {
-    GRU: "São Paulo",
-    CGH: "São Paulo",
-    VCP: "Campinas",
-    GIG: "Rio de Janeiro",
-    SDU: "Rio de Janeiro",
-    SSA: "Salvador",
-    REC: "Recife",
-    FOR: "Fortaleza",
-    MIA: "Miami",
-    LIS: "Lisboa",
-    MAD: "Madri",
-    CDG: "Paris",
-    FCO: "Roma",
-    EZE: "Buenos Aires",
-    SCL: "Santiago",
-  };
-
-  return mapa[codigo] || fallback || codigo;
+  return NOME_CIDADE_POR_AEROPORTO[codigo] || fallback || codigo;
 }
 
 function traduzirCompanhia(codigo) {
   const mapa = {
-    G3: "Gol",
-    LA: "LATAM",
-    AD: "Azul",
+    G3: "Gol Linhas Aéreas",
+    LA: "LATAM Airlines",
+    AD: "Azul Linhas Aéreas",
     AA: "American Airlines",
-    TP: "TAP",
+    DL: "Delta Air Lines",
+    UA: "United Airlines",
+    TP: "TAP Air Portugal",
     IB: "Iberia",
     AF: "Air France",
+    KL: "KLM",
     AZ: "ITA Airways",
+    LH: "Lufthansa",
+    BA: "British Airways",
+    CA: "Air China",
+    QR: "Qatar Airways",
+    EK: "Emirates",
   };
 
   return mapa[codigo] || codigo;
@@ -377,16 +396,46 @@ function mediaReferencia(origem, destino) {
 
   const medias = {
     "GRU-SSA": 700,
+    "CGH-SSA": 720,
+    "VCP-SSA": 680,
+
     "GRU-GIG": 400,
+    "CGH-GIG": 390,
+    "VCP-GIG": 420,
+
+    "GRU-SDU": 380,
+    "CGH-SDU": 360,
+    "VCP-SDU": 410,
+
     "GRU-REC": 700,
+    "CGH-REC": 720,
+    "VCP-REC": 680,
+
     "GRU-FOR": 750,
+    "CGH-FOR": 770,
+    "VCP-FOR": 730,
+
     "GRU-MIA": 2800,
+    "VCP-MIA": 2600,
+
     "GRU-LIS": 3500,
+    "VCP-LIS": 3200,
+
     "GRU-MAD": 3400,
+    "VCP-MAD": 3100,
+
     "GRU-CDG": 4200,
+    "GRU-ORY": 4000,
+    "VCP-CDG": 3900,
+
     "GRU-FCO": 3900,
+    "VCP-FCO": 3600,
+
     "GRU-EZE": 1600,
+    "GRU-AEP": 1500,
+
     "GRU-SCL": 1800,
+    "VCP-SCL": 1700,
   };
 
   return medias[chave] || 900;
