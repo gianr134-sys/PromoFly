@@ -255,6 +255,7 @@ function traduzirCompanhia(codigo) {
     CA: "Air China",
     QR: "Qatar Airways",
     EK: "Emirates",
+    AV: "Avianca"
   };
 
   return mapa[codigo] || codigo;
