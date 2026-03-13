@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY;
-const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET;
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-const AEROPORTOS_POR_CIDADE = {
+const CIDADES = {
   "SÃO PAULO": ["GRU", "CGH", "VCP"],
   "SAO PAULO": ["GRU", "CGH", "VCP"],
-  RIO: ["GIG", "SDU"],
   "RIO DE JANEIRO": ["GIG", "SDU"],
+  RIO: ["GIG", "SDU"],
   SALVADOR: ["SSA"],
   RECIFE: ["REC"],
   FORTALEZA: ["FOR"],
@@ -23,7 +23,7 @@ const AEROPORTOS_POR_CIDADE = {
   SANTIAGO: ["SCL"],
 };
 
-const NOME_CIDADE_POR_AEROPORTO = {
+const NOMES_AEROPORTOS = {
   GRU: "São Paulo",
   CGH: "São Paulo",
   VCP: "Campinas",
@@ -44,104 +44,55 @@ const NOME_CIDADE_POR_AEROPORTO = {
 };
 
 const ROTAS_PADRAO = [
-  { origemTexto: "São Paulo", destinoTexto: "Salvador" },
-  { origemTexto: "São Paulo", destinoTexto: "Rio de Janeiro" },
-  { origemTexto: "São Paulo", destinoTexto: "Recife" },
-  { origemTexto: "São Paulo", destinoTexto: "Fortaleza" },
-  { origemTexto: "São Paulo", destinoTexto: "Miami" },
-  { origemTexto: "São Paulo", destinoTexto: "Lisboa" },
-  { origemTexto: "São Paulo", destinoTexto: "Madri" },
-  { origemTexto: "São Paulo", destinoTexto: "Paris" },
-  { origemTexto: "São Paulo", destinoTexto: "Roma" },
-  { origemTexto: "São Paulo", destinoTexto: "Buenos Aires" },
-  { origemTexto: "São Paulo", destinoTexto: "Santiago" },
+  ["São Paulo", "Salvador"],
+  ["São Paulo", "Rio de Janeiro"],
+  ["São Paulo", "Recife"],
+  ["São Paulo", "Fortaleza"],
+  ["São Paulo", "Miami"],
+  ["São Paulo", "Lisboa"],
+  ["São Paulo", "Madri"],
+  ["São Paulo", "Paris"],
+  ["São Paulo", "Roma"],
+  ["São Paulo", "Buenos Aires"],
+  ["São Paulo", "Santiago"],
 ];
 
 export async function GET() {
   try {
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json(
-        { error: "Variáveis do Supabase não configuradas." },
-        { status: 500 }
-      );
+    const token = await getToken();
+
+    const { data: alertas, error } = await supabase.from("alertas").select("*");
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    if (!AMADEUS_API_KEY || !AMADEUS_API_SECRET) {
-      return NextResponse.json(
-        { error: "Variáveis da Amadeus não configuradas." },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    const { data: alertas, error: alertasError } = await supabase
-      .from("alertas")
-      .select("*");
-
-    if (alertasError) {
-      return NextResponse.json(
-        { error: alertasError.message },
-        { status: 500 }
-      );
-    }
-
-    const token = await getAmadeusToken();
     const resultados = [];
 
     for (const alerta of alertas || []) {
       if (!alerta.user_id) continue;
 
-      const rotasDoAlerta = montarRotasDoAlerta(alerta);
+      const rotas = montarRotas(alerta);
 
-      for (const rota of rotasDoAlerta) {
-        if (!rota.origemCodigo || !rota.destinoCodigo) continue;
-        if (rota.origemCodigo === rota.destinoCodigo) continue;
-
-        console.log(
-          `Buscando ${rota.origemNome} (${rota.origemCodigo}) → ${rota.destinoNome} (${rota.destinoCodigo})`
-        );
-
-        const departureDate = proximaDataBusca();
-
-        const oferta = await buscarMelhorOferta({
-          token,
-          originLocationCode: rota.origemCodigo,
-          destinationLocationCode: rota.destinoCodigo,
-          departureDate,
-        });
-
+      for (const rota of rotas) {
+        const oferta = await buscarOferta(token, rota.origemCodigo, rota.destinoCodigo);
         if (!oferta) continue;
 
         const preco = Number(oferta.preco);
-        const mediaRef = mediaReferencia(rota.origemCodigo, rota.destinoCodigo);
-        const score = calcularScore(preco, mediaRef);
+        const score = calcularScore(preco, mediaReferencia(rota.origemCodigo, rota.destinoCodigo));
         const nivel = classificarNivel(score);
 
         if (score < 60) continue;
 
-        const companhiaNome = traduzirCompanhia(oferta.companhia);
-
-        const origemExibicao =
-          rota.origemAeroportoUsado && rota.origemAeroportoUsado !== rota.origemNome
-            ? `${rota.origemNome} (${rota.origemAeroportoUsado})`
-            : rota.origemNome;
-
-        const destinoExibicao =
-          rota.destinoAeroportoUsado && rota.destinoAeroportoUsado !== rota.destinoNome
-            ? `${rota.destinoNome} (${rota.destinoAeroportoUsado})`
-            : rota.destinoNome;
-
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("oportunidades")
           .insert([
             {
               alerta_id: alerta.id,
               user_id: alerta.user_id,
-              origem: origemExibicao,
-              destino: destinoExibicao,
+              origem: `${rota.origemNome} (${rota.origemCodigo})`,
+              destino: `${rota.destinoNome} (${rota.destinoCodigo})`,
               preco,
-              companhia: companhiaNome,
+              companhia: traduzirCompanhia(oferta.companhia),
               score,
               nivel,
               link: "https://promo-fly-o9h1.vercel.app/oportunidades",
@@ -149,9 +100,7 @@ export async function GET() {
           ])
           .select();
 
-        if (!error && data?.[0]) {
-          resultados.push(data[0]);
-        }
+        if (data?.[0]) resultados.push(data[0]);
       }
     }
 
@@ -161,181 +110,111 @@ export async function GET() {
       resultados,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error?.message || "Erro no robô." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-async function getAmadeusToken() {
-  const response = await fetch(
-    "https://test.api.amadeus.com/v1/security/oauth2/token",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: AMADEUS_API_KEY,
-        client_secret: AMADEUS_API_SECRET,
-      }),
-      cache: "no-store",
-    }
-  );
+async function getToken() {
+  const response = await fetch("https://test.api.amadeus.com/v1/security/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: process.env.AMADEUS_API_KEY,
+      client_secret: process.env.AMADEUS_API_SECRET,
+    }),
+  });
 
   const data = await response.json();
-
-  if (!response.ok || !data.access_token) {
-    throw new Error(
-      data?.error_description || data?.error || "Falha ao gerar token Amadeus."
-    );
-  }
-
+  if (!data.access_token) throw new Error("Falha ao gerar token Amadeus");
   return data.access_token;
 }
 
-async function buscarMelhorOferta({
-  token,
-  originLocationCode,
-  destinationLocationCode,
-  departureDate,
-}) {
-  const url = new URL("https://test.api.amadeus.com/v2/shopping/flight-offers");
-  url.searchParams.set("originLocationCode", originLocationCode);
-  url.searchParams.set("destinationLocationCode", destinationLocationCode);
-  url.searchParams.set("departureDate", departureDate);
-  url.searchParams.set("adults", "1");
-  url.searchParams.set("max", "5");
-  url.searchParams.set("currencyCode", "BRL");
+async function buscarOferta(token, origem, destino) {
+  const data = proximaData();
+  const url = `https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode=${origem}&destinationLocationCode=${destino}&departureDate=${data}&adults=1&max=5&currencyCode=BRL`;
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   const json = await response.json();
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const ofertas = json?.data || [];
-  if (!ofertas.length) return null;
-
-  const primeira = ofertas[0];
-  const preco = primeira?.price?.grandTotal;
-  const companhia = primeira?.validatingAirlineCodes?.[0] || "N/A";
-
-  if (!preco) return null;
+  if (!json?.data?.length) return null;
 
   return {
-    preco,
-    companhia,
+    preco: json.data[0].price.grandTotal,
+    companhia: json.data[0].validatingAirlineCodes?.[0] || "N/A",
   };
 }
 
-function montarRotasDoAlerta(alerta) {
-  const origemTexto = String(alerta.origem || "").trim();
-  const tipoOrigem = String(alerta.tipo_origem || "").toLowerCase();
+function montarRotas(alerta) {
+  const origemLista = expandir(alerta.origem, alerta.tipo_origem);
+  if (!origemLista.length) return [];
 
-  const destinoTextoOriginal = String(alerta.destino || "").trim();
-  const destinoTexto = destinoTextoOriginal.toLowerCase();
-  const tipoDestino = String(alerta.tipo_destino || "").toLowerCase();
+  const destinoTexto = String(alerta.destino || "").trim().toLowerCase();
 
-  const origens = expandirLocal(origemTexto, tipoOrigem);
-  if (!origens.length) return [];
+  if (destinoTexto === "" || destinoTexto === "todos" || destinoTexto === "todos os destinos") {
+    const saida = [];
 
-  if (
-    destinoTexto === "" ||
-    destinoTexto === "todos" ||
-    destinoTexto === "todos os destinos"
-  ) {
-    return montarRotasPadraoParaOrigens(origens);
+    for (const origem of origemLista) {
+      for (const [origemPadrao, destinoPadrao] of ROTAS_PADRAO) {
+        const origensPadrao = expandir(origemPadrao, "estado");
+        if (!origensPadrao.find((x) => x.codigo === origem.codigo)) continue;
+
+        const destinos = expandir(destinoPadrao, "estado");
+
+        for (const destino of destinos) {
+          if (origem.codigo === destino.codigo) continue;
+
+          saida.push({
+            origemNome: origem.nome,
+            origemCodigo: origem.codigo,
+            destinoNome: destino.nome,
+            destinoCodigo: destino.codigo,
+          });
+        }
+      }
+    }
+
+    return saida;
   }
 
-  const destinos = expandirLocal(destinoTextoOriginal, tipoDestino);
-  if (!destinos.length) return [];
+  const destinos = expandir(alerta.destino, alerta.tipo_destino);
+  const saida = [];
 
-  const rotas = [];
-
-  for (const origem of origens) {
+  for (const origem of origemLista) {
     for (const destino of destinos) {
-      rotas.push({
-        origemNome: origem.cidadeNome,
+      if (origem.codigo === destino.codigo) continue;
+
+      saida.push({
+        origemNome: origem.nome,
         origemCodigo: origem.codigo,
-        origemAeroportoUsado: origem.codigo,
-        destinoNome: destino.cidadeNome,
+        destinoNome: destino.nome,
         destinoCodigo: destino.codigo,
-        destinoAeroportoUsado: destino.codigo,
       });
     }
   }
 
-  return rotas;
+  return saida;
 }
 
-function montarRotasPadraoParaOrigens(origens) {
-  const rotas = [];
-
-  for (const origem of origens) {
-    for (const rotaPadrao of ROTAS_PADRAO) {
-      const origemPadraoExpandida = expandirLocal(rotaPadrao.origemTexto, "estado");
-      const origemPadraoCodigos = origemPadraoExpandida.map((item) => item.codigo);
-
-      if (!origemPadraoCodigos.includes(origem.codigo)) continue;
-
-      const destinos = expandirLocal(rotaPadrao.destinoTexto, "estado");
-
-      for (const destino of destinos) {
-        if (origem.codigo === destino.codigo) continue;
-
-        rotas.push({
-          origemNome: origem.cidadeNome,
-          origemCodigo: origem.codigo,
-          origemAeroportoUsado: origem.codigo,
-          destinoNome: destino.cidadeNome,
-          destinoCodigo: destino.codigo,
-          destinoAeroportoUsado: destino.codigo,
-        });
-      }
-    }
-  }
-
-  return rotas;
-}
-
-function expandirLocal(valor, tipo) {
+function expandir(valor, tipo) {
   if (!valor) return [];
 
   const texto = String(valor).trim().toUpperCase();
 
-  if (tipo === "aeroporto") {
-    return [
-      {
-        codigo: texto,
-        cidadeNome: nomeDoLocal(texto, valor),
-      },
-    ];
+  if (String(tipo || "").toLowerCase() === "aeroporto") {
+    return [{ codigo: texto, nome: NOMES_AEROPORTOS[texto] || texto }];
   }
 
-  const aeroportos = AEROPORTOS_POR_CIDADE[texto];
-  if (!aeroportos) {
-    return [];
-  }
-
-  const cidadeNome = nomeCidadePorTexto(valor);
-
+  const aeroportos = CIDADES[texto] || [];
   return aeroportos.map((codigo) => ({
     codigo,
-    cidadeNome,
+    nome: nomeCidade(valor),
   }));
 }
 
-function nomeCidadePorTexto(valor) {
+function nomeCidade(valor) {
   const texto = String(valor || "").trim().toUpperCase();
 
   const mapa = {
@@ -356,10 +235,6 @@ function nomeCidadePorTexto(valor) {
   };
 
   return mapa[texto] || valor;
-}
-
-function nomeDoLocal(codigo, fallback) {
-  return NOME_CIDADE_POR_AEROPORTO[codigo] || fallback || codigo;
 }
 
 function traduzirCompanhia(codigo) {
@@ -385,64 +260,51 @@ function traduzirCompanhia(codigo) {
   return mapa[codigo] || codigo;
 }
 
-function proximaDataBusca() {
+function proximaData() {
   const d = new Date();
   d.setDate(d.getDate() + 45);
   return d.toISOString().slice(0, 10);
 }
 
 function mediaReferencia(origem, destino) {
-  const chave = `${origem}-${destino}`;
-
   const medias = {
     "GRU-SSA": 700,
     "CGH-SSA": 720,
     "VCP-SSA": 680,
-
     "GRU-GIG": 400,
     "CGH-GIG": 390,
     "VCP-GIG": 420,
-
     "GRU-SDU": 380,
     "CGH-SDU": 360,
     "VCP-SDU": 410,
-
     "GRU-REC": 700,
     "CGH-REC": 720,
     "VCP-REC": 680,
-
     "GRU-FOR": 750,
     "CGH-FOR": 770,
     "VCP-FOR": 730,
-
     "GRU-MIA": 2800,
     "VCP-MIA": 2600,
-
     "GRU-LIS": 3500,
     "VCP-LIS": 3200,
-
     "GRU-MAD": 3400,
     "VCP-MAD": 3100,
-
     "GRU-CDG": 4200,
     "GRU-ORY": 4000,
     "VCP-CDG": 3900,
-
     "GRU-FCO": 3900,
     "VCP-FCO": 3600,
-
     "GRU-EZE": 1600,
     "GRU-AEP": 1500,
-
     "GRU-SCL": 1800,
     "VCP-SCL": 1700,
   };
 
-  return medias[chave] || 900;
+  return medias[`${origem}-${destino}`] || 900;
 }
 
-function calcularScore(precoAtual, media) {
-  const desconto = ((media - precoAtual) / media) * 100;
+function calcularScore(preco, media) {
+  const desconto = ((media - preco) / media) * 100;
 
   if (desconto >= 40) return 95;
   if (desconto >= 30) return 85;
