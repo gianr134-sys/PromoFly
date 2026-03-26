@@ -131,20 +131,30 @@ async function getToken() {
 }
 
 async function buscarOferta(token, origem, destino) {
-  const data = proximaData();
-  const url = `https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode=${origem}&destinationLocationCode=${destino}&departureDate=${data}&adults=1&max=5&currencyCode=BRL`;
+  const datas = gerarDatas();
 
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  let melhor = null;
 
-  const json = await response.json();
-  if (!json?.data?.length) return null;
+  for (const data of datas) {
+    const url = `https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode=${origem}&destinationLocationCode=${destino}&departureDate=${data}&adults=1&max=3&currencyCode=BRL`;
 
-  return {
-    preco: json.data[0].price.grandTotal,
-    companhia: json.data[0].validatingAirlineCodes?.[0] || "N/A",
-  };
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const json = await response.json();
+
+    if (!json?.data?.length) continue;
+
+    const preco = Number(json.data[0].price.grandTotal);
+    const companhia = json.data[0].validatingAirlineCodes?.[0] || "N/A";
+
+    if (!melhor || preco < melhor.preco) {
+      melhor = { preco, companhia };
+    }
+  }
+
+  return melhor;
 }
 
 function montarRotas(alerta) {
