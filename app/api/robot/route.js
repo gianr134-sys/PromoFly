@@ -95,7 +95,7 @@ export async function GET() {
               companhia: traduzirCompanhia(oferta.companhia),
               score,
               nivel,
-              link: "https://promo-fly-o9h1.vercel.app/oportunidades",
+              link: gerarLinkGoogleFlights(rota.origemCodigo, rota.destinoCodigo),
             },
           ])
           .select();
@@ -356,3 +356,16 @@ async function buscarOferta(token, origem, destino) {
 
   return melhor;
 }
+.insert([
+  {
+    alerta_id: alerta.id,
+    user_id: alerta.user_id,
+    origem: `${rota.origemNome} (${rota.origemCodigo})`,
+    destino: `${rota.destinoNome} (${rota.destinoCodigo})`,
+    preco,
+    companhia: traduzirCompanhia(oferta.companhia),
+    score,
+    nivel,
+    link: gerarLinkGoogleFlights(rota.origemCodigo, rota.destinoCodigo),
+  },
+])
