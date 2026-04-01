@@ -26,7 +26,7 @@ const CIDADES = {
 const NOMES_AEROPORTOS = {
   GRU: "São Paulo",
   CGH: "São Paulo",
-  VCP: "Campinas",
+  VCP: "São Paulo",
   GIG: "Rio de Janeiro",
   SDU: "Rio de Janeiro",
   SSA: "Salvador",
@@ -57,6 +57,8 @@ const ROTAS_PADRAO = [
   ["São Paulo", "Santiago"],
 ];
 
+const DIAS_BUSCA = [30, 45, 60, 75];
+
 export async function GET() {
   try {
     const token = await getToken();
@@ -74,14 +76,33 @@ export async function GET() {
       const rotas = montarRotas(alerta);
 
       for (const rota of rotas) {
-        const oferta = await buscarOferta(token, rota.origemCodigo, rota.destinoCodigo);
+        const oferta = await buscarMelhorOfertaDaRota(
+          token,
+          rota.origemCodigo,
+          rota.destinoCodigo
+        );
+
         if (!oferta) continue;
 
         const preco = Number(oferta.preco);
-        const score = calcularScore(preco, mediaReferencia(rota.origemCodigo, rota.destinoCodigo));
+        const score = calcularScore(
+          preco,
+          mediaReferencia(rota.origemCodigo, rota.destinoCodigo)
+        );
         const nivel = classificarNivel(score);
 
         if (score < 60) continue;
+
+        const companhia = traduzirCompanhia(oferta.companhia);
+
+        const origemTexto = `${rota.origemNome} (${rota.origemCodigo})`;
+        const destinoTexto = `${rota.destinoNome} (${rota.destinoCodigo})`;
+
+        const linkCompra = gerarLinkGoogleFlights(
+          rota.origemCodigo,
+          rota.destinoCodigo,
+          oferta.dataViagem
+        );
 
         const { data } = await supabase
           .from("oportunidades")
@@ -89,13 +110,13 @@ export async function GET() {
             {
               alerta_id: alerta.id,
               user_id: alerta.user_id,
-              origem: `${rota.origemNome} (${rota.origemCodigo})`,
-              destino: `${rota.destinoNome} (${rota.destinoCodigo})`,
+              origem: origemTexto,
+              destino: destinoTexto,
               preco,
-              companhia: traduzirCompanhia(oferta.companhia),
+              companhia,
               score,
               nivel,
-              link: gerarLinkGoogleFlights(rota.origemCodigo, rota.destinoCodigo),
+              link: linkCompra,
             },
           ])
           .select();
@@ -115,58 +136,83 @@ export async function GET() {
 }
 
 async function getToken() {
-  const response = await fetch("https://test.api.amadeus.com/v1/security/oauth2/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: process.env.AMADEUS_API_KEY,
-      client_secret: process.env.AMADEUS_API_SECRET,
-    }),
-  });
+  const response = await fetch(
+    "https://test.api.amadeus.com/v1/security/oauth2/token",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: process.env.AMADEUS_API_KEY,
+        client_secret: process.env.AMADEUS_API_SECRET,
+      }),
+    }
+  );
 
   const data = await response.json();
-  if (!data.access_token) throw new Error("Falha ao gerar token Amadeus");
+
+  if (!data.access_token) {
+    throw new Error(
+      data?.error_description || data?.error || "Falha ao gerar token Amadeus"
+    );
+  }
+
   return data.access_token;
 }
 
-async function buscarOferta(token, origem, destino) {
-  const datas = gerarDatas();
-
+async function buscarMelhorOfertaDaRota(token, origem, destino) {
   let melhor = null;
 
-  for (const data of datas) {
-    const url = `https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode=${origem}&destinationLocationCode=${destino}&departureDate=${data}&adults=1&max=3&currencyCode=BRL`;
+  for (const dias of DIAS_BUSCA) {
+    const dataViagem = dataFutura(dias);
+    const oferta = await buscarOferta(token, origem, destino, dataViagem);
 
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    if (!oferta) continue;
 
-    const json = await response.json();
-
-    if (!json?.data?.length) continue;
-
-    const preco = Number(json.data[0].price.grandTotal);
-    const companhia = json.data[0].validatingAirlineCodes?.[0] || "N/A";
-
-    if (!melhor || preco < melhor.preco) {
-      melhor = { preco, companhia };
+    if (!melhor || Number(oferta.preco) < Number(melhor.preco)) {
+      melhor = {
+        ...oferta,
+        dataViagem,
+      };
     }
   }
 
   return melhor;
 }
 
+async function buscarOferta(token, origem, destino, data) {
+  const url =
+    `https://test.api.amadeus.com/v2/shopping/flight-offers` +
+    `?originLocationCode=${origem}` +
+    `&destinationLocationCode=${destino}` +
+    `&departureDate=${data}` +
+    `&adults=1&max=5&currencyCode=BRL`;
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const json = await response.json();
+  if (!json?.data?.length) return null;
+
+  const primeira = json.data[0];
+
+  return {
+    preco: primeira.price?.grandTotal,
+    companhia: primeira.validatingAirlineCodes?.[0] || "N/A",
+  };
+}
+
 function montarRotas(alerta) {
-  const origemLista = expandir(alerta.origem, alerta.tipo_origem);
-  if (!origemLista.length) return [];
+  const origens = expandir(alerta.origem, alerta.tipo_origem);
+  if (!origens.length) return [];
 
   const destinoTexto = String(alerta.destino || "").trim().toLowerCase();
 
   if (destinoTexto === "" || destinoTexto === "todos" || destinoTexto === "todos os destinos") {
     const saida = [];
 
-    for (const origem of origemLista) {
+    for (const origem of origens) {
       for (const [origemPadrao, destinoPadrao] of ROTAS_PADRAO) {
         const origensPadrao = expandir(origemPadrao, "estado");
         if (!origensPadrao.find((x) => x.codigo === origem.codigo)) continue;
@@ -192,7 +238,7 @@ function montarRotas(alerta) {
   const destinos = expandir(alerta.destino, alerta.tipo_destino);
   const saida = [];
 
-  for (const origem of origemLista) {
+  for (const origem of origens) {
     for (const destino of destinos) {
       if (origem.codigo === destino.codigo) continue;
 
@@ -265,16 +311,20 @@ function traduzirCompanhia(codigo) {
     CA: "Air China",
     QR: "Qatar Airways",
     EK: "Emirates",
-    AV: "Avianca"
+    AV: "Avianca",
   };
 
   return mapa[codigo] || codigo;
 }
 
-function proximaData() {
+function dataFutura(dias) {
   const d = new Date();
-  d.setDate(d.getDate() + 45);
+  d.setDate(d.getDate() + dias);
   return d.toISOString().slice(0, 10);
+}
+
+function gerarLinkGoogleFlights(origem, destino, data) {
+  return `https://www.google.com/travel/flights?q=Flights%20from%20${origem}%20to%20${destino}%20on%20${data}`;
 }
 
 function mediaReferencia(origem, destino) {
@@ -330,42 +380,3 @@ function classificarNivel(score) {
   if (score >= 60) return "boa";
   return "normal";
 }
-async function buscarOferta(token, origem, destino) {
-  const datas = gerarDatas();
-
-  let melhor = null;
-
-  for (const data of datas) {
-    const url = `https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode=${origem}&destinationLocationCode=${destino}&departureDate=${data}&adults=1&max=3&currencyCode=BRL`;
-
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const json = await response.json();
-
-    if (!json?.data?.length) continue;
-
-    const preco = Number(json.data[0].price.grandTotal);
-    const companhia = json.data[0].validatingAirlineCodes?.[0] || "N/A";
-
-    if (!melhor || preco < melhor.preco) {
-      melhor = { preco, companhia };
-    }
-  }
-
-  return melhor;
-}
-.insert([
-  {
-    alerta_id: alerta.id,
-    user_id: alerta.user_id,
-    origem: `${rota.origemNome} (${rota.origemCodigo})`,
-    destino: `${rota.destinoNome} (${rota.destinoCodigo})`,
-    preco,
-    companhia: traduzirCompanhia(oferta.companhia),
-    score,
-    nivel,
-    link: gerarLinkGoogleFlights(rota.origemCodigo, rota.destinoCodigo),
-  },
-])
