@@ -31,10 +31,13 @@ export default function OportunidadesPage() {
       .eq("user_id", session.user.id)
       .order("criado_em", { ascending: false });
 
-    if (!error) {
-      setOportunidades(data || []);
+    if (error) {
+      alert(error.message);
+      setLoading(false);
+      return;
     }
 
+    setOportunidades(data || []);
     setLoading(false);
   }
 
@@ -42,7 +45,13 @@ export default function OportunidadesPage() {
     const confirmar = confirm("Deseja excluir esta promoção?");
     if (!confirmar) return;
 
-    await supabase.from("oportunidades").delete().eq("id", id);
+    const { error } = await supabase.from("oportunidades").delete().eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
     carregar();
   }
 
@@ -196,12 +205,12 @@ export default function OportunidadesPage() {
               gap: 22,
             }}
           >
-            {oportunidades.map((oportunidade) => {
-              const estilo = badge(oportunidade.nivel);
+            {oportunidades.map((item) => {
+              const estilo = badge(item.nivel);
 
               return (
                 <div
-                  key={oportunidade.id}
+                  key={item.id}
                   style={{
                     background: "rgba(255,255,255,.92)",
                     backdropFilter: "blur(10px)",
@@ -229,7 +238,7 @@ export default function OportunidadesPage() {
                           fontWeight: 900,
                         }}
                       >
-                        {oportunidade.origem} → {oportunidade.destino}
+                        {item.origem} → {item.destino}
                       </h2>
 
                       <div
@@ -239,7 +248,7 @@ export default function OportunidadesPage() {
                           fontSize: 16,
                         }}
                       >
-                        Encontrada em {formatarData(oportunidade.criado_em)}
+                        Encontrada em {formatarData(item.criado_em)}
                       </div>
                     </div>
 
@@ -268,17 +277,11 @@ export default function OportunidadesPage() {
                   >
                     <InfoCard
                       label="Preço"
-                      value={formatarPreco(oportunidade.preco)}
+                      value={formatarPreco(item.preco)}
                       destaque
                     />
-                    <InfoCard
-                      label="Companhia"
-                      value={oportunidade.companhia}
-                    />
-                    <InfoCard
-                      label="Score"
-                      value={String(oportunidade.score)}
-                    />
+                    <InfoCard label="Companhia" value={item.companhia} />
+                    <InfoCard label="Score" value={String(item.score)} />
                   </div>
 
                   <div
@@ -290,7 +293,7 @@ export default function OportunidadesPage() {
                     }}
                   >
                     <a
-                      href={oportunidade.link}
+                      href={item.link || "https://www.google.com/travel/flights"}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
@@ -300,13 +303,14 @@ export default function OportunidadesPage() {
                         borderRadius: 999,
                         textDecoration: "none",
                         fontWeight: 800,
+                        display: "inline-block",
                       }}
                     >
-                      Ver promoção
+                      Ver promoção ✈️
                     </a>
 
                     <button
-                      onClick={() => excluir(oportunidade.id)}
+                      onClick={() => excluir(item.id)}
                       style={{
                         background: "#fff",
                         color: "#dc2626",
