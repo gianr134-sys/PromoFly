@@ -110,7 +110,7 @@ export async function GET() {
 
         const { score, nivel } = calcularScore(preco);
 
-        if (score < 60) continue;
+        // if (score < 60) continue;
 
         const linkCompra = gerarLinkGoogleFlights(
           rota.origemCodigo,
