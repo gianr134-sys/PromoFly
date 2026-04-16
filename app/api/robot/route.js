@@ -43,18 +43,19 @@ const NOMES_AEROPORTOS = {
   SCL: "Santiago",
 };
 
-const ROTAS_PADRAO = [
-  ["São Paulo", "Salvador"],
-  ["São Paulo", "Rio de Janeiro"],
-  ["São Paulo", "Recife"],
-  ["São Paulo", "Fortaleza"],
-  ["São Paulo", "Miami"],
-  ["São Paulo", "Lisboa"],
-  ["São Paulo", "Madri"],
-  ["São Paulo", "Paris"],
-  ["São Paulo", "Roma"],
-  ["São Paulo", "Buenos Aires"],
-  ["São Paulo", "Santiago"],
+const ROTAS = [
+  {
+    origemCodigo: "GRU",
+    origemNome: "São Paulo",
+    destinoCodigo: "MIA",
+    destinoNome: "Miami",
+  },
+  {
+    origemCodigo: "GRU",
+    origemNome: "São Paulo",
+    destinoCodigo: "LIS",
+    destinoNome: "Lisboa",
+  }
 ];
 
 const DIAS_BUSCA = [30, 45, 60, 75];
