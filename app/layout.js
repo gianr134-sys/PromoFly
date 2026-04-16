@@ -1,18 +1,23 @@
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
-      <body style={{ margin: 0, fontFamily: "Arial, sans-serif" }}>
-        
+      <body
+        style={{
+          margin: 0,
+          fontFamily: "Arial, sans-serif",
+          background: "#f3f7ff",
+        }}
+      >
         {/* NAVBAR */}
         <div
           style={{
-            width: "100%",
-            background: "white",
-            borderBottom: "1px solid #e5e7eb",
+            background: "linear-gradient(90deg, #2563eb, #7c3aed)",
             padding: "16px 24px",
+            color: "white",
             position: "sticky",
             top: 0,
             zIndex: 1000,
+            boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
           }}
         >
           <div
@@ -20,56 +25,48 @@ export default function RootLayout({ children }) {
               maxWidth: 1100,
               margin: "0 auto",
               display: "flex",
-              alignItems: "center",
               justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            {/* LOGO */}
-            <a
-              href="/painel"
+            <div
               style={{
-                fontSize: 24,
+                fontSize: 26,
                 fontWeight: 900,
-                textDecoration: "none",
-                color: "#111827",
               }}
             >
-              PromoFly ✈️
-            </a>
+              ✈️ PromoFly
+            </div>
 
-            {/* MENU */}
             <div style={{ display: "flex", gap: 12 }}>
-              <a style={botao("#3b82f6")} href="/painel">
+              <a style={btn("#3b82f6")} href="/painel">
                 Painel
               </a>
 
-              <a style={botao("#10b981")} href="/buscar">
+              <a style={btn("#10b981")} href="/buscar">
                 Buscar
               </a>
 
-              <a style={botao("#f59e0b")} href="/oportunidades">
+              <a style={btn("#f59e0b")} href="/oportunidades">
                 Promoções
               </a>
             </div>
           </div>
         </div>
 
-        {/* CONTEÚDO */}
         {children}
-
       </body>
     </html>
   );
 }
 
-function botao(cor) {
+function btn(color) {
   return {
-    background: cor,
+    background: color,
     color: "white",
     padding: "10px 18px",
     borderRadius: 999,
     textDecoration: "none",
     fontWeight: 700,
-    fontSize: 14,
   };
 }
