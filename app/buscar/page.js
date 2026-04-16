@@ -2,13 +2,20 @@
 
 import { useState } from "react";
 
+function hojeMais30Dias() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function BuscarPage() {
   const [origem, setOrigem] = useState("GRU");
   const [destino, setDestino] = useState("MIA");
+  const [data, setData] = useState(hojeMais30Dias());
 
-  async function buscar(e) {
+  function buscar(e) {
     e.preventDefault();
-    window.location.href = `/api/buscar?origem=${origem}&destino=${destino}`;
+    window.location.href = `/api/buscar?origem=${origem}&destino=${destino}&data=${data}`;
   }
 
   return (
@@ -17,9 +24,9 @@ export default function BuscarPage() {
         maxWidth: 1000,
         margin: "40px auto",
         padding: 20,
+        fontFamily: "Arial, sans-serif",
       }}
     >
-      {/* HERO */}
       <div
         style={{
           background: "linear-gradient(135deg, #2563eb, #7c3aed)",
@@ -39,7 +46,6 @@ export default function BuscarPage() {
         </p>
       </div>
 
-      {/* CARD */}
       <form
         onSubmit={buscar}
         style={{
@@ -58,19 +64,26 @@ export default function BuscarPage() {
         >
           <input
             value={origem}
-            onChange={(e) => setOrigem(e.target.value)}
+            onChange={(e) => setOrigem(e.target.value.toUpperCase())}
             placeholder="Origem (GRU)"
             style={input}
           />
 
           <input
             value={destino}
-            onChange={(e) => setDestino(e.target.value)}
+            onChange={(e) => setDestino(e.target.value.toUpperCase())}
             placeholder="Destino (MIA)"
             style={input}
           />
 
-          <button style={botao}>
+          <input
+            type="date"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+            style={input}
+          />
+
+          <button style={botao} type="submit">
             Buscar ✈️
           </button>
         </div>
@@ -81,7 +94,7 @@ export default function BuscarPage() {
 
 const input = {
   flex: 1,
-  minWidth: 200,
+  minWidth: 180,
   padding: 15,
   borderRadius: 12,
   border: "1px solid #ccc",
