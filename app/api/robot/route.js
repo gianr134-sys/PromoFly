@@ -214,48 +214,50 @@ export async function GET() {
       const ofertas = await buscarVoos(token, origemCodigo, destinoCodigo, dataIda);
 
       if (!ofertas.length) {
-  const preco = 1899.90;
-  const score = 85;
-  const nivel = "otima";
-  const companhia = "LATAM Airlines";
+        const preco = 1899.9;
+        const score = 85;
+        const nivel = "otima";
+        const companhia = "LATAM Airlines";
+        const tipo_preco = "estimado";
 
-  const origemTexto = `${nomeBonito(alerta.origem, origemCodigo)} (${origemCodigo})`;
-  const destinoTexto = `${nomeBonito(alerta.destino, destinoCodigo)} (${destinoCodigo})`;
-  const linkCompra = gerarLinkGoogleFlights(origemCodigo, destinoCodigo, dataIda);
+        const origemTexto = `${nomeBonito(alerta.origem, origemCodigo)} (${origemCodigo})`;
+        const destinoTexto = `${nomeBonito(alerta.destino, destinoCodigo)} (${destinoCodigo})`;
+        const linkCompra = gerarLinkGoogleFlights(origemCodigo, destinoCodigo, dataIda);
 
-  const { data, error } = await supabase
-    .from("oportunidades")
-    .insert([
-      {
-        alerta_id: alerta.id,
-        user_id: alerta.user_id,
-        origem: origemTexto,
-        destino: destinoTexto,
-        preco,
-        companhia,
-        score,
-        nivel,
-        link: linkCompra,
-      },
-    ])
-    .select();
+        const { data, error } = await supabase
+          .from("oportunidades")
+          .insert([
+            {
+              alerta_id: alerta.id,
+              user_id: alerta.user_id,
+              origem: origemTexto,
+              destino: destinoTexto,
+              preco,
+              companhia,
+              score,
+              nivel,
+              link: linkCompra,
+              tipo_preco,
+            },
+          ])
+          .select();
 
-  if (error) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        detalhe: error,
-      },
-      { status: 500 }
-    );
-  }
+        if (error) {
+          return NextResponse.json(
+            {
+              error: error.message,
+              detalhe: error,
+            },
+            { status: 500 }
+          );
+        }
 
-  if (data?.[0]) {
-    resultados.push(data[0]);
-  }
+        if (data?.[0]) {
+          resultados.push(data[0]);
+        }
 
-  continue;
-}
+        continue;
+      }
 
       const oferta = ofertas[0];
       const preco = parseFloat(oferta.price?.total || oferta.price?.grandTotal || "0");
@@ -279,6 +281,7 @@ export async function GET() {
             score,
             nivel,
             link: linkCompra,
+            tipo_preco: "real",
           },
         ])
         .select();
@@ -298,6 +301,7 @@ export async function GET() {
               score,
               nivel,
               link: linkCompra,
+              tipo_preco: "real",
             },
           },
           { status: 500 }
