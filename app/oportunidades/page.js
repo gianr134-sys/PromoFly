@@ -75,6 +75,12 @@ export default function OportunidadesPage() {
         cor: "#15803d",
         borda: "#bbf7d0",
       },
+      regular: {
+        texto: "Regular",
+        bg: "#f3f4f6",
+        cor: "#374151",
+        borda: "#d1d5db",
+      },
       normal: {
         texto: "Normal",
         bg: "#f3f4f6",
@@ -282,6 +288,30 @@ export default function OportunidadesPage() {
                     />
                     <InfoCard label="Companhia" value={item.companhia} />
                     <InfoCard label="Score" value={String(item.score)} />
+                  </div>
+
+                  <div style={{ marginTop: 10 }}>
+                    {item.tipo_preco === "real" ? (
+                      <span
+                        style={{
+                          color: "#15803d",
+                          fontWeight: 800,
+                          fontSize: 14,
+                        }}
+                      >
+                        ✔ Preço confirmado
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          color: "#d97706",
+                          fontWeight: 800,
+                          fontSize: 14,
+                        }}
+                      >
+                        ⚠ Preço estimado
+                      </span>
+                    )}
                   </div>
 
                   <div
